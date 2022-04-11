@@ -29,14 +29,25 @@ class Program
         Console.WriteLine("Enter the number of paths N parameter:");
         var nString = Console.ReadLine();
         var N = Convert.ToInt64(nString);
-        var stock = new StockSimulation();
         var o = new Option();
         var call =o.EuropeanCall(N, T, mu, sigma, s0,K, r);
+        var callGreeks = o.CallGreeks(N, T, mu, sigma, s0, K, r);
         Console.WriteLine("The European call option price is " + call["call option price"]);
         Console.WriteLine("The standard error of European call option price Estimation is " + call["standard error estimation"]);
+        Console.WriteLine("The call option delta is " + callGreeks["delta"]);
+        Console.WriteLine("The call option gamma is " + callGreeks["gamma"]);
+        Console.WriteLine("The call option vega is " + callGreeks["vega"]);
+        Console.WriteLine("The call option theta is " + callGreeks["theta"]);
+        Console.WriteLine("The call option rho is " + callGreeks["rho"]);
         var put = o.EuropeanPut(N, T, mu, sigma, s0, K, r);
-        Console.WriteLine("The European call option price is " + put["call option price"]);
+        var putGreeks = o.PutGreeks(N, T, mu, sigma, s0, K, r);
+        Console.WriteLine("The European call option price is " + put["put option price"]);
         Console.WriteLine("The standard error of European call option price Estimation is " + put["standard error estimation"]);
+        Console.WriteLine("The call option delta is " + putGreeks["delta"]);
+        Console.WriteLine("The call option gamma is " + putGreeks["gamma"]);
+        Console.WriteLine("The call option vega is " + putGreeks["vega"]);
+        Console.WriteLine("The call option theta is " + putGreeks["theta"]);
+        Console.WriteLine("The call option rho is " + putGreeks["rho"]);
     }
 }
 
@@ -184,12 +195,81 @@ class Option
 
             return new Dictionary<string, double>
             {
-                {"call option price", putprice},
+                {"put option price", putprice},
                 {"standard error estimation", std_error}
             };
 
         }
+
+        public Dictionary<string, double> CallGreeks(Int64 N, double T, double mu, double sigma, double s0, double k, double r)
+        {
+            var deltaS = s0 / 10; //10% change
+            var deltaSigma = sigma / 10; //10% change
+            var deltaT = T / 10;
+            var deltaR = r / 10;
+            var originalPrice = EuropeanCall(N, T, mu, sigma, s0, k, r)["call option price"];
+            // Delta
+            var priceplusS0 = EuropeanCall(N, T, mu, sigma, s0 + deltaS, k, r)["call option price"];
+            var priceminusS0 = EuropeanCall(N, T, mu, sigma, s0 - deltaS, k, r)["call option price"];
+            var delta = (priceplusS0 - priceminusS0) / (2 * deltaS);
+            //gamma 
+            var gamma = (priceplusS0 - 2 * originalPrice + priceminusS0) / Math.Pow(deltaS,2);
+            // vega
+            var priceplusSigma = EuropeanCall(N, T, mu, sigma+deltaSigma, s0, k, r)["call option price"];
+            var priceminusSigma = EuropeanCall(N, T, mu, sigma-deltaSigma, s0, k, r)["call option price"];
+            var vega = (priceplusSigma - priceminusSigma) / (2 * deltaSigma);
+            // Theta
+            var priceplusT = EuropeanCall(N, T + deltaT, mu, sigma, s0, k, r)["call option price"];
+            var theta = (priceplusT - originalPrice) / deltaT;
+            // Rho 
+            var priceplusR = EuropeanCall(N, T, mu, sigma, s0, k, r+deltaR)["call option price"];
+            var priceminusR = EuropeanCall(N, T, mu, sigma, s0, k, r-deltaR)["call option price"];
+            var rho = (priceplusR - priceminusR) / (2 * deltaR);
+            return new Dictionary<string, double>
+            {
+                {"delta", delta},
+                {"gamma", gamma},
+                {"vega", vega},
+                {"theta", theta},
+                {"rho", rho},
+
+            };
+        }
         
+        public Dictionary<string, double> PutGreeks(long N, double T, double mu, double sigma, double s0, double k, double r)
+        {
+            var deltaS = s0 / 10; //10% change
+            var deltaSigma = sigma / 10; //10% change
+            var deltaT = T / 10;
+            var deltaR = r / 10;
+            var originalPrice = EuropeanPut(N, T, mu, sigma, s0, k, r)["put option price"];
+            // Delta
+            var priceplusS0 = EuropeanPut(N, T, mu, sigma, s0 + deltaS, k, r)["put option price"];
+            var priceminusS0 = EuropeanPut(N, T, mu, sigma, s0 - deltaS, k, r)["put option price"];
+            var delta = (priceplusS0 - priceminusS0) / (2 * deltaS);
+            //gamma 
+            var gamma = (priceplusS0 - 2 * originalPrice + priceminusS0) / Math.Pow(deltaS,2);
+            // vega
+            var priceplusSigma = EuropeanPut(N, T, mu, sigma+deltaSigma, s0, k, r)["put option price"];
+            var priceminusSigma = EuropeanPut(N, T, mu, sigma-deltaSigma, s0, k, r)["put option price"];
+            var vega = (priceplusSigma - priceminusSigma) / (2 * deltaSigma);
+            // Theta
+            var priceplusT = EuropeanPut(N, T + deltaT, mu, sigma, s0, k, r)["put option price"];
+            var theta = (priceplusT - originalPrice) / deltaT;
+            // Rho 
+            var priceplusR = EuropeanPut(N, T, mu, sigma, s0, k, r+deltaR)["put option price"];
+            var priceminusR = EuropeanPut(N, T, mu, sigma, s0, k, r-deltaR)["put option price"];
+            var rho = (priceplusR - priceminusR) / (2 * deltaR);
+            return new Dictionary<string, double>
+            {
+                {"delta", delta},
+                {"gamma", gamma},
+                {"vega", vega},
+                {"theta", theta},
+                {"rho", rho},
+
+            };
+        }
     }
 
 
