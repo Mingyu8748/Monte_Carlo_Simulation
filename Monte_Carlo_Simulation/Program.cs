@@ -5,7 +5,6 @@ using System.Security.Cryptography;
 namespace Monte_Carlo_Simulation;
 
 class Program
-
 {
     static void Main(string[] args)
     {
