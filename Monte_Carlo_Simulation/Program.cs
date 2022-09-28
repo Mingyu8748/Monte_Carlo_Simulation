@@ -1,5 +1,6 @@
 ﻿
 
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 
 namespace Monte_Carlo_Simulation;
@@ -11,10 +12,10 @@ class Program
         var mu = 0.2; // annualized volatility parameter
         Console.WriteLine("The annualized mu return parameter used in this simulator is: " + mu);
         var sigma = 0.15; // annualized volatility parameter
-        Console.WriteLine("The annualized sigma volatility parameter used in this simulator is: " + sigma);
+        Console.WriteLine("The annualized sigma volatility parameter used in this simulator is : " + sigma);
         // user input parameters
-        Console.WriteLine("Use the Antithetic Method for this simulation? Enter Yes or No : ");
-        var antithetic = Console.ReadLine();
+        Console.WriteLine("Use the what variance reduction method for this simulation? Enter Antithetic or ControlVariate or Both : ");
+        string VarianceReduction = Console.ReadLine();
         Console.WriteLine("Enter the T parameter, the number of steps will be 252 * T (daily time step):");
         var tString = Console.ReadLine();
         var T = Convert.ToDouble(tString);
@@ -30,10 +31,11 @@ class Program
         Console.WriteLine("Enter the number of paths N parameter:");
         var nString = Console.ReadLine();
         var N = Convert.ToInt64(nString);
+        Console.WriteLine("Enter the base number of Van der Corput sequence generator");
         // model results
         var o = new Option();
-        var call =o.EuropeanCall(N, T, mu, sigma, s0,K, r,antithetic);
-        var callGreeks = o.CallGreeks(N, T, mu, sigma, s0, K, r,antithetic);
+        var call =o.EuropeanCall(N, T, mu, sigma, s0,K, r,VarianceReduction);
+        var callGreeks = o.CallGreeks(N, T, mu, sigma, s0, K, r,VarianceReduction);
         Console.WriteLine("The European call option price is " + call["call option price"]);
         Console.WriteLine("The standard error of European call option price Estimation is " + call["standard error estimation"]);
         Console.WriteLine("The call option delta is " + callGreeks["delta"]);
@@ -41,8 +43,8 @@ class Program
         Console.WriteLine("The call option vega is " + callGreeks["vega"]);
         Console.WriteLine("The call option theta is " + callGreeks["theta"]);
         Console.WriteLine("The call option rho is " + callGreeks["rho"]);
-        var put = o.EuropeanPut(N, T, mu, sigma, s0, K, r,antithetic);
-        var putGreeks = o.PutGreeks(N, T, mu, sigma, s0, K, r,antithetic);
+        var put = o.EuropeanPut(N, T, mu, sigma, s0, K, r,VarianceReduction);
+        var putGreeks = o.PutGreeks(N, T, mu, sigma, s0, K, r,VarianceReduction);
         Console.WriteLine("The European call option price is " + put["put option price"]);
         Console.WriteLine("The standard error of European call option price Estimation is " + put["standard error estimation"]);
         Console.WriteLine("The call option delta is " + putGreeks["delta"]);
@@ -86,7 +88,7 @@ class RandomNumberGenerator
 
 class StockSimulation
 {
-    public double[,] StockPath(Int64 N, double T, double mu, double sigma, double s0, string antithetic)
+    public double[,] StockPath(Int64 N, double T, double mu, double sigma, double s0, string VarianceReduction)
     {
         var dailymu = mu / 252;
         var dailysigma = sigma / (Math.Pow(252, 0.5));
@@ -102,7 +104,7 @@ class StockSimulation
         }
 
         //simulation for stock price
-        if (antithetic == "Yes")
+        if (VarianceReduction == "Antithetic")
         {
             const double dt = 0.00396825; //default dt as 1 day (1/252)
             var rowpart1 = 1;
@@ -168,24 +170,36 @@ class StockSimulation
 class Option
     {
 
-        public Dictionary<string, double> EuropeanCall(Int64 N, double T, double mu, double sigma, double s0, double k, double r, string antithetic)
+        public Dictionary<string, double> EuropeanCall(Int64 N, double T, double mu, double sigma, double s0, double k, double r, string VarianceReduction)
         {
             var s = new StockSimulation();
-            double [,] price = s.StockPath(N, T, mu, sigma, s0,  antithetic);
+            double [,] price = s.StockPath(N, T, mu, sigma, s0,  VarianceReduction);
             // payoff & option price calculation
             var sum = 0.0;
-            for (int i = 0; i < N; i++)
-            {
-               var payoff = price[i,(int) (T * 252)] - k;
-               if (payoff > 0);
-               {
-                   sum += payoff;
-               }
-            }
-
+                for (int i = 0; i < N; i++)
+                {
+                    var payoff = price[i, (int) (T * 252)] - k;
+                    if (payoff > 0) ;
+                    {
+                        sum += payoff;
+                    }
+                }
             var mean = sum / N;
             var callprice = mean * Math.Exp(-r * T);
-
+            //Control variate method 
+            var K_2 = 50;
+            var sum2 = 0.0;
+            for (int i = 0; i < N; i++)
+                {
+                    var payoff2 = price[i, (int) (T * 252)] - K_2;
+                    if (payoff2 > 0) ;
+                    {
+                        sum2 += payoff2;
+                    }
+                }
+            var bnum = (sum2 - sum2 / N) * (sum -mean) ;
+            var bdenom = Math.Pow((sum - mean), 2);
+            var b = bnum / bdenom;
             // standard error of the call price
             var diffsum = 0.0;
             for (int i = 0; i < N; i++)
