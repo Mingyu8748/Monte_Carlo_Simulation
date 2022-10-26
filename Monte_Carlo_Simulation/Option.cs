@@ -89,6 +89,162 @@ class Option
         };
     }
 
+    public double AsianCall(Int64 N, double T, double mu, double sigma, double s0, double k,
+        double r, double[,] price)
+    {
+        double[,] AveragePrice = new double [N,1];
+        var sum = 0.0;
+        for (int j = 0; j < N; j++)
+        {
+            for (int i = 0; i < (int) (T * 252) + 1; i++)
+            {
+                var price_path = price[j, i];
+                sum += price_path;
+            }
+
+            AveragePrice[j, 0] = sum / (T * 252+1);
+        }
+
+        var sum2 = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            var payoff = AveragePrice[i, 0] - k;
+            if (payoff > 0) ;
+            {
+                sum2 += payoff;
+            }
+        }
+
+        var callprice = (sum2 / N) * Math.Exp(-r * T);
+
+        return callprice;
+
+    }
+    
+    public double AsianPut(Int64 N, double T, double mu, double sigma, double s0, double k,
+        double r, double[,] price)
+    {
+        double[,] AveragePrice = new double [N,1];
+        var sum = 0.0;
+        for (int j = 0; j < N; j++)
+        {
+            for (int i = 0; i < (int) (T * 252) + 1; i++)
+            {
+                var price_path = price[j, i];
+                sum += price_path;
+            }
+
+            AveragePrice[j, 0] = sum / (T * 252+1);
+        }
+
+        var sum2 = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            var payoff = k - AveragePrice[i, 0];
+            if (payoff > 0) ;
+            {
+                sum2 += payoff;
+            }
+        }
+
+        var putprice = (sum2 / N) * Math.Exp(-r * T);
+
+        return putprice;
+
+    }
+    
+    public double DigitalPut(Int64 N, double T, double mu, double sigma, double s0, double k,
+        double r, double p, double[,] price)
+    {
+        var sum = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            var payoff = k - price[i, (int) (T * 252)];
+            if (payoff > 0) ;
+            {
+                sum += p;
+            }
+        }
+        var optionprice = (sum/N) * Math.Exp(-r * T);
+
+        return optionprice;
+
+    }
+
+    public double DigitalCall(Int64 N, double T, double mu, double sigma, double s0, double k,
+        double r, double p, double[,] price)
+    {
+        var sum = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            var payoff = price[i, (int) (T * 252)] -k;
+            if (payoff > 0) ;
+            {
+                sum += p;
+            }
+        }
+        var optionprice = (sum/N) * Math.Exp(-r * T);
+
+        return optionprice;
+
+    }
+    public double LookbackCall(Int64 N, double T, double mu, double sigma, double s0, double k,
+        double r, double[,] price)
+    {
+        var sum = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            var pricepath = new double [] {price[i, (int) (T * 252)]};
+            var payoff = pricepath.Max() - k;
+            if (payoff > 0) ;
+            {
+                sum += payoff;
+            }
+        }
+        var optionprice = (sum/N) * Math.Exp(-r * T);
+
+        return optionprice;
+
+    }
+    
+    public double LookbackPut(Int64 N, double T, double mu, double sigma, double s0, double k,
+        double r, double[,] price)
+    {
+        var sum = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            var pricepath = new double [] {price[i, (int) (T * 252)]};
+            var payoff = k - pricepath.Min();
+            if (payoff > 0) ;
+            {
+                sum += payoff;
+            }
+        }
+        var optionprice = (sum/N) * Math.Exp(-r * T);
+
+        return optionprice;
+
+    }
+    
+    public double RangeOption(Int64 N, double T, double mu, double sigma, double s0, double k,
+        double r, double[,] price)
+    {
+        var sum = 0.0;
+        for (int i = 0; i < N; i++)
+        {
+            var pricepath = new double [] {price[i, (int) (T * 252)]};
+            var payoff = pricepath.Max() - pricepath.Min();
+            if (payoff > 0) ;
+            {
+                sum += payoff;
+            }
+        }
+        var optionprice = (sum/N) * Math.Exp(-r * T);
+
+        return optionprice;
+
+    }
+    
     public Dictionary<string, double> CallGreeks(Int64 N, double T, double mu, double sigma, double s0, double k,
         double r, string antithetic)
     {
